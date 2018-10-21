@@ -15,39 +15,26 @@ public interface Parser<T>{
         return null;
     }
     default <P,R> Parser<R> next(Parser<P> parser, BiFunction<T, P, R> f){
-        return new Parser<R>() {
-            @Override
-            public R tryParse(CharStream charStream) {
-                final T t= Parser.this.parse(charStream);
-                if(t==null)return null;
-                final P p=parser.parse(charStream);
-                if(p==null)return null;
-                return f.apply(t,p);
-            }
+        return charStream -> {
+            final T t= Parser.this.parse(charStream);
+            if(t==null)return null;
+            final P p=parser.parse(charStream);
+            if(p==null)return null;
+            return f.apply(t,p);
         };
     }
     default Parser<T> or(Parser<T> parser){
-        return new Parser<T>() {
-            @Override
-            public T tryParse(CharStream charStream) {
-                final T t= Parser.this.parse(charStream);
-                if(t==null){
-                    final T t1=parser.parse(charStream);
-                    if(t1==null)return null;
-                    return t1;
-                }
-                return t;
-            }
+        return charStream -> {
+            final T t= Parser.this.parse(charStream);
+            if(t!=null)return t;
+            return parser.parse(charStream);
         };
     }
     default <R>Parser<R> map(Function<T, R> f){
-        return new Parser<R>() {
-            @Override
-            public R tryParse(CharStream charStream) {
-                T t=Parser.this.tryParse(charStream);
-                if(t==null)return null;
-                return f.apply(t);
-            }
+        return charStream -> {
+            T t=Parser.this.tryParse(charStream);
+            if(t==null)return null;
+            return f.apply(t);
         };
     }
 }
