@@ -1,7 +1,5 @@
 package parsers_lib;
 
-import java.util.function.BiFunction;
-
 public class Parsers {
 
     public static final <T>Parser<T> empty(T t){
@@ -32,6 +30,12 @@ public class Parsers {
         for (char c:s.toCharArray()) {
             p=p.next(character(c),(a,b)->a+b);
         }
+        return p;
+    }
+
+    public static Parser<String> oneOf(String... s){
+        Parser<String> p=exact(s[0]);
+        for(int i=1;i<s.length;i++)p=p.or(exact(s[i]));
         return p;
     }
 }
