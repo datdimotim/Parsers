@@ -16,13 +16,20 @@ public class MainWindow extends JFrame {
         add(field);
         JPanel line=new JPanel(new FlowLayout());
         add(line,BorderLayout.AFTER_LAST_LINE);
-        line.add(new JLabel("f(x)="),FlowLayout.LEFT);
+
+        Font font=new Font("",0,17);
+        JLabel fxLabel=new JLabel("f(X)=");
+        fxLabel.setFont(font);
+        line.add(fxLabel,FlowLayout.LEFT);
         JTextField fx=new JTextField();
-        fx.setPreferredSize(new Dimension(500,20));
+        fx.setFont(font);
+        fx.setPreferredSize(new Dimension(500,30));
         line.add(fx);
         JButton run=new JButton("run");
+        run.setFont(font);
         line.add(run);
         JLabel label=new JLabel("ok");
+        label.setFont(font);
         line.add(label);
 
         run.addActionListener(e->{

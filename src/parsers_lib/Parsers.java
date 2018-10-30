@@ -6,7 +6,10 @@ public class Parsers {
       return charStream -> t;
     }
 
+    public static final Parser<Object> eof=charStream -> charStream.isEnd()?null:new Object();
+
     public static final Parser<Integer> digit= charStream -> {
+        if(charStream.isEnd())return null;
         if(!Character.isDigit(charStream.peek()))return null;
         return charStream.get()-'0';
     };
@@ -15,6 +18,7 @@ public class Parsers {
 
     public static final Parser<Character> character(char c){
         return charStream -> {
+            if(charStream.isEnd())return null;
             char n = charStream.get();
             if (n == c) return c;
             else return null;

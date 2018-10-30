@@ -7,7 +7,6 @@ public interface Parser<T>{
     T tryParse(CharStream charStream);
 
     default T parse(CharStream charStream){
-        if(charStream.isEnd())return null;
         final CharStream.Save save=charStream.save();
         T t= Parser.this.tryParse(charStream);
         if(t!=null)return t;

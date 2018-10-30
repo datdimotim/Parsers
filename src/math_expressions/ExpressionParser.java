@@ -1,6 +1,7 @@
 package math_expressions;
 
 import parsers_lib.Parser;
+
 import static parsers_lib.Parsers.*;
 
 public class ExpressionParser{
@@ -30,6 +31,10 @@ public class ExpressionParser{
         return number().or(variable()).or(function1()).or(expInBrakets());
     }
 
+    private static Parser<Node> power(){
+        return terminal().next((exact("^").next(terminal(),(a,b)->b)).or(empty(new Node("1"))),(a, b)->new Node("^",a,b));
+    }
+
     private static Parser<Node> number(){
         return integer.map(i->new Node(i+""));
     }
@@ -39,7 +44,10 @@ public class ExpressionParser{
     }
 
     private static Parser<Node> function1(){
-        return oneOf("sin","sinh","cos","cosh").next(expInBrakets(), Node::new);
+        return exact("sin").next(expInBrakets(),Node::new)
+                .or(exact("sinh").next(expInBrakets(),Node::new))
+                .or(exact("cos").next(expInBrakets(),Node::new))
+                .or(exact("cosh").next(expInBrakets(),Node::new));
     }
 
     private static Parser<Node> expInBrakets(){
@@ -48,8 +56,8 @@ public class ExpressionParser{
 
     private static Parser<Node> product(){
         return charStream -> {
-            final Parser<Node> first = terminal();
-            final Parser<Node> others = oneOf("*", "/").next(terminal(), (a, b) -> new Node(a, new Node("1"), b));
+            final Parser<Node> first = power();
+            final Parser<Node> others = (oneOf("*", "/").or(empty("*"))).next(power(), (a, b) -> new Node(a, new Node("1"), b));
 
             Node f=first.parse(charStream);
             if(f==null)return null;

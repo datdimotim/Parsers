@@ -14,11 +14,13 @@ public class FunctionBuilder {
             if(node.val.equals("sin"))return x->Math.sin(build(node.left).apply(x));
             if(node.val.equals("sinh"))return x->Math.sinh(build(node.left).apply(x));
             if(node.val.equals("cos"))return x->Math.cos(build(node.left).apply(x));
+            if(node.val.equals("cosh"))return x->Math.cosh(build(node.left).apply(x));
             throw new RuntimeException();
         }
 
         Function<Double,Double> l=build(node.left);
         Function<Double,Double> r=build(node.right);
+        if(node.val.equals("^"))return (x->Math.pow(l.apply(x),r.apply(x)));
         if(node.val.equals("+"))return (x->l.apply(x)+r.apply(x));
         if(node.val.equals("-"))return (x->l.apply(x)-r.apply(x));
         if(node.val.equals("*"))return (x->l.apply(x)*r.apply(x));
