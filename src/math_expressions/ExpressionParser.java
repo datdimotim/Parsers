@@ -26,12 +26,24 @@ public class ExpressionParser{
         };
     }
 
-    private static Parser<Node> terminal(){
-        return skipSpaces(number().or(variable()).or(function1()).or(constant()).or(expInBrakets()));
+    private static Parser<NodeEx> terminal(){
+        return skipSpaces(
+                number().map(node->new NodeEx(node,HT.DIGIT,HT.DIGIT))
+                        .or(variable().map(node -> new NodeEx(node,HT.LETTER,HT.LETTER)))
+                        .or(function1().map(node -> new NodeEx(node,HT.LETTER,HT.BRACKET)))
+                        .or(constant().map(node -> new NodeEx(node,HT.LETTER,HT.LETTER)))
+                        .or(expInBrakets().map(node -> new NodeEx(node,HT.BRACKET,HT.BRACKET))));
     }
 
-    private static Parser<Node> power(){
-        return terminal().next((exact("^").next(terminal(),(a,b)->b)).or(empty(new Node("1"))),(a, b)->new Node("^",a,b));
+    private static Parser<NodeEx> power(){
+        return charStream-> {
+            NodeEx first=terminal().parse(charStream);
+            if(first==null)return null;
+            if(exact("^").parse(charStream)==null)return first;
+            NodeEx last=terminal().parse(charStream);
+            if(last==null)return null;
+            return new NodeEx(new Node("^",first.node,last.node),first.startsWith,last.endsWith);
+        };
     }
 
     private static Parser<Node> number(){
@@ -69,18 +81,45 @@ public class ExpressionParser{
 
     private static Parser<Node> product(){
         return charStream -> {
-            final Parser<Node> first = power();
-            final Parser<Node> others = (oneOf("*", "/").or(empty("*"))).next(power(), (a, b) -> new Node(a, new Node("1"), b));
+            final Parser<NodeEx> first = power();
+            final Parser<NodeEx> others = (oneOf("*", "/").or(empty(""))).next(power(),
+                    (a, b) -> new NodeEx(
+                            new Node(a.equals("")?"*":a, new Node("1"), b.node),
+                            a.equals("")?b.startsWith:HT.SIGN,
+                            b.endsWith
+                    ));
 
-            Node f=first.parse(charStream);
+            NodeEx f=first.parse(charStream);
             if(f==null)return null;
 
-            Node next;
+            NodeEx next;
             while (null!=(next=others.parse(charStream))){
-                f=new Node("*",f,next);
+                if(f.endsWith==HT.LETTER&&next.startsWith==HT.LETTER)return null;
+                if(f.endsWith==HT.DIGIT&&next.startsWith==HT.DIGIT)return null;
+                f=new NodeEx(
+                        new Node("*",f.node,next.node),
+                        f.startsWith,
+                        next.endsWith
+                );
             }
 
-            return f;
+            return f.node;
         };
+    }
+}
+
+enum HT{
+    LETTER,BRACKET,DIGIT,SIGN
+}
+
+class NodeEx{
+    final Node node;
+    final HT startsWith;
+    final HT endsWith;
+
+    NodeEx(Node node, HT startsWith, HT endsWith) {
+        this.node = node;
+        this.startsWith = startsWith;
+        this.endsWith = endsWith;
     }
 }

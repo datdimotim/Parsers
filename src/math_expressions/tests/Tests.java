@@ -55,7 +55,8 @@ public class Tests {
                 "xsin(x)",
                 "ex",
                 "xpi",
-                "epi"
+                "epi",
+                "expi"
         };
 
         double[] results={3,0,-1,3,3,9,7,9,15*32,1.0/6,-5,3-3.0/8,324,1,1,4,1,1,9,16,
