@@ -57,7 +57,10 @@ public class Tests {
                 "ex",
                 "xpi",
                 "epi",
-                "expi"
+                "expi",
+                ".",
+                "e^(pi*.)",
+                "e^sin(pi*.)"
         };
 
         double[] results={3,0,-1,3,3,9,7,9,15*32,1.0/6,-5,3-3.0/8,324,1,1,4,1,1,9,16,
@@ -71,6 +74,13 @@ public class Tests {
         for(String w:wrong)if(!ExpressionParser.expression.parse(new CharStream(w)).isError())throw new RuntimeException("wrong: "+w);
 
         System.out.println("time="+(System.currentTimeMillis()-st));
+
+
+        for (String s:wrong){
+            ExpressionParser.expression.parse(new CharStream(s)).printError(new CharStream(s));
+            System.out.println();
+            System.out.println();
+        }
     }
 
     private static void test(String task, double x, double expected, double eps){

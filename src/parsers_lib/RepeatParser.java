@@ -15,7 +15,7 @@ public class RepeatParser<A,T> implements Parser<A>{
     public ParseResult<A> tryParse(CharStream charStream) {
         A st=ini;
         ParseResult<T> t=parser.parse(charStream);
-        if(t.isError())return new ParseResult<>(t.errInf,t.posErr);
+        if(t.isError())return new ParseResult<>(t.errInf,t.posErr,t.causeError);
         st=accum.apply(st,t.result);
         while (!(t=parser.parse(charStream)).isError())st=accum.apply(st,t.result);
         return new ParseResult<>(st);

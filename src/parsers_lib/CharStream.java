@@ -1,5 +1,7 @@
 package parsers_lib;
 
+import java.util.Map;
+
 public class CharStream{
     private final String src;
     private int pos=0;
@@ -31,6 +33,10 @@ public class CharStream{
 
     public int getPos(){
         return pos;
+    }
+
+    public String getSrc(){
+        return src;
     }
 
     public class Save{
