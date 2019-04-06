@@ -4,6 +4,7 @@ import math_expressions.ExpressionParser;
 import math_expressions.FunctionBuilder;
 import math_expressions.Node;
 import parsers_lib.CharStream;
+import parsers_lib.ParseResult;
 
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
@@ -67,15 +68,15 @@ public class Tests {
         final long st=System.currentTimeMillis();
 
         for(int i=0;i<accept.length;i++)test(accept[i],x,results[i],eps);
-        for(String w:wrong)if(ExpressionParser.expression.parse(new CharStream(w))!=null)throw new RuntimeException("wrong: "+w);
+        for(String w:wrong)if(!ExpressionParser.expression.parse(new CharStream(w)).isError())throw new RuntimeException("wrong: "+w);
 
         System.out.println("time="+(System.currentTimeMillis()-st));
     }
 
     private static void test(String task, double x, double expected, double eps){
-        Node node=ExpressionParser.expression.parse(new CharStream(task));
-        if(node==null)throw new RuntimeException("accept:  "+task);
-        double res=FunctionBuilder.build(node).apply(x);
+        ParseResult<Node> node=ExpressionParser.expression.parse(new CharStream(task));
+        if(node.isError())throw new RuntimeException("accept:  "+task);
+        double res=FunctionBuilder.build(node.result).apply(x);
         final double delta=Math.abs(res-expected);
         if(delta>eps)throw new RuntimeException("accept: task= "+task+" delta= "+delta);
     }

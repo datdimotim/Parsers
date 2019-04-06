@@ -2,6 +2,7 @@ import math_expressions.ExpressionParser;
 import math_expressions.FunctionBuilder;
 import math_expressions.Node;
 import parsers_lib.CharStream;
+import parsers_lib.ParseResult;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,11 +35,11 @@ public class MainWindow extends JFrame {
 
         run.addActionListener(e->{
             final CharStream stream=new CharStream(fx.getText());
-            final Node exp= ExpressionParser.expression.parse(stream);
-            if(exp==null){
+            final ParseResult<Node> exp= ExpressionParser.expression.parse(stream);
+            if(exp.isError()){
                 throw new RuntimeException();
             }
-            field.update(FunctionBuilder.build(exp));
+            field.update(FunctionBuilder.build(exp.result));
         });
 
         setVisible(true);

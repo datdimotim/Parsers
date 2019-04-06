@@ -3,25 +3,25 @@ package parsers_lib;
 public class Parsers {
 
     public static final <T>Parser<T> empty(T t){
-      return charStream -> t;
+      return charStream -> new ParseResult<>(t);
     }
 
-    public static final Parser<Object> eof=charStream -> charStream.isEnd()?new Object():null;
+    public static final Parser<Void> eof=charStream -> charStream.isEnd()?new ParseResult<>(null):new ParseResult<>("this is not eof",charStream.getPos());
 
     public static final Parser<Integer> digit= charStream -> {
-        if(charStream.isEnd())return null;
-        if(!Character.isDigit(charStream.peek()))return null;
-        return charStream.get()-'0';
+        if(charStream.isEnd())return new ParseResult<>("end of stream", charStream.getPos());
+        if(!Character.isDigit(charStream.peek()))return new ParseResult<>("not digit",charStream.getPos());
+        return new ParseResult<>(charStream.get()-'0');
     };
 
     public static final Parser<Integer> integer=charStream -> new RepeatParser<>(digit, (a, t) -> a * 10 + t, 0).parse(charStream);
 
-    public static final Parser<Character> character(char c){
+    public static Parser<Character> character(char c){
         return charStream -> {
-            if(charStream.isEnd())return null;
+            if(charStream.isEnd())return new ParseResult<>("end of stream", charStream.getPos());
             char n = charStream.get();
-            if (n == c) return c;
-            else return null;
+            if (n == c) return new ParseResult<>(c);
+            else return new ParseResult<>("this char is not equal "+c,charStream.getPos());
         };
     };
 

@@ -12,12 +12,12 @@ public class RepeatParser<A,T> implements Parser<A>{
         this.ini=ini;
     }
     @Override
-    public A tryParse(CharStream charStream) {
+    public ParseResult<A> tryParse(CharStream charStream) {
         A st=ini;
-        T t=parser.parse(charStream);
-        if(t==null)return null;
-        st=accum.apply(st,t);
-        while (null!=(t=parser.parse(charStream)))st=accum.apply(st,t);
-        return st;
+        ParseResult<T> t=parser.parse(charStream);
+        if(t.isError())return new ParseResult<>(t.errInf,t.posErr);
+        st=accum.apply(st,t.result);
+        while (!(t=parser.parse(charStream)).isError())st=accum.apply(st,t.result);
+        return new ParseResult<>(st);
     }
 }

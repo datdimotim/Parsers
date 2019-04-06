@@ -4,36 +4,36 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public interface Parser<T>{
-    T tryParse(CharStream charStream);
+    ParseResult<T> tryParse(CharStream charStream);
 
-    default T parse(CharStream charStream){
+    default ParseResult<T> parse(CharStream charStream){
         final CharStream.Save save=charStream.save();
-        T t= Parser.this.tryParse(charStream);
-        if(t!=null)return t;
+        ParseResult<T> t= Parser.this.tryParse(charStream);
+        if(!t.isError())return t;
         charStream.restore(save);
-        return null;
+        return t;
     }
     default <P,R> Parser<R> next(Parser<P> parser, BiFunction<T, P, R> f){
         return charStream -> {
-            final T t= Parser.this.parse(charStream);
-            if(t==null)return null;
-            final P p=parser.parse(charStream);
-            if(p==null)return null;
-            return f.apply(t,p);
+            final ParseResult<T> t= Parser.this.parse(charStream);
+            if(t.isError())return new ParseResult<>(t.errInf,t.posErr);
+            final ParseResult<P> p=parser.parse(charStream);
+            if(p.isError())return new ParseResult<>(t.errInf,t.posErr);
+            return new ParseResult<>(f.apply(t.result,p.result));
         };
     }
     default Parser<T> or(Parser<T> parser){
         return charStream -> {
-            final T t= Parser.this.parse(charStream);
-            if(t!=null)return t;
+            final ParseResult<T> t= Parser.this.parse(charStream);
+            if(!t.isError())return t;
             return parser.parse(charStream);
         };
     }
     default <R>Parser<R> map(Function<T, R> f){
         return charStream -> {
-            T t=Parser.this.tryParse(charStream);
-            if(t==null)return null;
-            return f.apply(t);
+            ParseResult<T> t=Parser.this.tryParse(charStream);
+            if(t.isError())return new ParseResult<>(t.errInf,t.posErr);
+            return new ParseResult<>(f.apply(t.result));
         };
     }
 }

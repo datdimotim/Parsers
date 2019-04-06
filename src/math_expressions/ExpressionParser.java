@@ -1,6 +1,7 @@
 package math_expressions;
 
 
+import parsers_lib.ParseResult;
 import parsers_lib.Parser;
 import parsers_lib.RepeatParser;
 
@@ -14,12 +15,12 @@ public class ExpressionParser{
             final Parser<Node> first = (exact("-").or(empty("+")).next(product(), (a, b) -> new Node(a, new Node("0"), b)));
             final Parser<Node> others = oneOf("+", "-").next(product(), (a, b) -> new Node(a, new Node("0"), b));
 
-            Node f=first.parse(charStream);
-            if(f==null)return null;
+            ParseResult<Node> f=first.parse(charStream);
+            if(f.isError())return f;
 
-            Node next;
-            while (null!=(next=others.parse(charStream))){
-                f=new Node("+",f,next);
+            ParseResult<Node> next;
+            while(!(next=others.parse(charStream)).isError()){
+                f=new ParseResult<>(new Node("+",f.result,next.result));
             }
 
             return f;
@@ -37,12 +38,12 @@ public class ExpressionParser{
 
     private static Parser<NodeEx> power(){
         return charStream-> {
-            NodeEx first=terminal().parse(charStream);
-            if(first==null)return null;
-            if(exact("^").parse(charStream)==null)return first;
-            NodeEx last=terminal().parse(charStream);
-            if(last==null)return null;
-            return new NodeEx(new Node("^",first.node,last.node),first.startsWith,last.endsWith);
+            ParseResult<NodeEx> first=terminal().parse(charStream);
+            if(first.isError())return first;
+            if(exact("^").parse(charStream).isError())return first;
+            ParseResult<NodeEx> last=terminal().parse(charStream);
+            if(last.isError())return last;
+            return new ParseResult<>(new NodeEx(new Node("^",first.result.node,last.result.node),first.result.startsWith,last.result.endsWith));
         };
     }
 
@@ -89,21 +90,21 @@ public class ExpressionParser{
                             b.endsWith
                     ));
 
-            NodeEx f=first.parse(charStream);
-            if(f==null)return null;
+            ParseResult<NodeEx> f=first.parse(charStream);
+            if(f.isError())return new ParseResult<>(f.errInf,f.posErr);
 
-            NodeEx next;
-            while (null!=(next=others.parse(charStream))){
-                if(f.endsWith==HT.LETTER&&next.startsWith==HT.LETTER)return null;
-                if(f.endsWith==HT.DIGIT&&next.startsWith==HT.DIGIT)return null;
-                f=new NodeEx(
-                        new Node("*",f.node,next.node),
-                        f.startsWith,
-                        next.endsWith
-                );
+            ParseResult<NodeEx> next;
+            while (!(next=others.parse(charStream)).isError()){
+                if(f.result.endsWith==HT.LETTER&&next.result.startsWith==HT.LETTER)return new ParseResult<>("letter after letter",charStream.getPos());
+                if(f.result.endsWith==HT.DIGIT&&next.result.startsWith==HT.DIGIT)return new ParseResult<>("digit after digit",charStream.getPos());
+                f=new ParseResult<>(new NodeEx(
+                        new Node("*",f.result.node,next.result.node),
+                        f.result.startsWith,
+                        next.result.endsWith
+                ));
             }
 
-            return f.node;
+            return new ParseResult<>(f.result.node);
         };
     }
 }
