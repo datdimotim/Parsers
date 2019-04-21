@@ -7,6 +7,7 @@ import parsers_lib.Parser;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Scanner;
+import java.util.function.Predicate;
 
 import static parsers_lib.Parsers.*;
 
@@ -80,31 +81,48 @@ class Test{
     }
 
     public static void testModule(){
-        Parser module=FortranParser.module();
+        Parser<Declaration> module=FortranParser.module();
         String[] accept={
                 "module a \n...\nend module a\n",
                 "module    \t aS_1   \n\n  \n ...\n  \n \n \t end \t module \t as_1\n",
                 "module  b\n...\n   end\t module\n",
                 "module   ccd_\n \t ...\n\t enD\n",
         };
-        String[] wrong={" ssa","","2ssq","01qww sdw"};
+        final String[] names={"a","as_1","b","ccd_"};
 
-        for(String a:accept)if(module.parse(new CharStream(a)).isError()){
-            module.parse(new CharStream(a)).printError(new CharStream(a));
-            throw new RuntimeException(a);
+        String[] wrong={"module a ... end","module as\n..\nend","module ass\n...\nend module as;"};
+        String[] mesgs={"decl","body","end"};
+
+        for(int i=0;i<accept.length;i++){
+            final int ii=i;
+            checkPositive(module,accept[i],r->r.name.toLowerCase().equals(names[ii]));
         }
-        for(String w:wrong)if(!module.parse(new CharStream(w)).isError())throw new RuntimeException(w);
+        for(int i=0;i<wrong.length;i++){
+            final int ii=i;
+            checkNegative(module,wrong[i],err->err.startsWith("module: "+mesgs[ii]));
+        }
     }
 
     public static void testName(){
-        Parser name=FortranParser.name();
+        Parser<String> name=FortranParser.name();
         String[] accept={"func","f","f12","f1f2f32cc3d22","f_12","___asw","ssww2___","s swew 2 2"};
         String[] wrong={" ssa","","2ssq","01qww sdw"};
 
-        for(String a:accept)if(name.parse(new CharStream(a)).isError()){
-            name.parse(new CharStream(a)).printError(new CharStream(a));
-            throw new RuntimeException(a);
-        }
-        for(String w:wrong)if(!name.parse(new CharStream(w)).isError())throw new RuntimeException(w);
+        for(String a:accept)checkPositive(name,a,s->true);
+        for(String w:wrong)checkNegative(name,w,s->true);
+    }
+
+    private static <T>void checkPositive(Parser<T> parser, String string, Predicate<T> checker){
+        CharStream stream=new CharStream(string);
+        ParseResult<T> result=parser.parse(stream);
+        if(result.isError())throw new RuntimeException(string);
+        if(!checker.test(result.result))throw new RuntimeException(result.result.toString());
+    }
+
+    private static <T>void checkNegative(Parser<T> parser,String string,Predicate<String> checkMesg){
+        CharStream stream=new CharStream(string);
+        ParseResult<T> result=parser.parse(stream);
+        if(!result.isError())throw new RuntimeException(string);
+        if(!checkMesg.test(result.errInf))throw new RuntimeException(string+"\n\n"+result.errInf);
     }
 }
