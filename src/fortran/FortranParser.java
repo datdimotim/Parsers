@@ -33,7 +33,10 @@ public class FortranParser {
         return letter.or(character('_')).next(
                 repeat1(letter.or(character('_')).map(c->""+c).or(digit.map(i->""+i)), (a,b)->a+b,"").or(empty("")),(c,s)->c+s);
     }
-    public static Parser<String> nextLine(){return space().or(empty("")).next(repeat1(oneOf(";","\n"),(a,b)->a+b,"")).next(space().or(empty("")));};
+    public static Parser<String> nextLine(){
+        return space().or(empty("")).next(oneOf(";","\n"))
+                .next(repeat(oneOf(";","\n").or(space()),(a,b)->a+b,""));
+    }
     public static Parser<String> space(){return repeat1(oneOf(" ","\t"),(a,b)->a+b,"");};
 
     //public final Parser<HashMap<String, Declaration>> file= bracket(ignoreCase("MODULE"),,ignoreCase("END MODULE").or(ignoreCase("END")));
@@ -41,14 +44,14 @@ public class FortranParser {
 
     public static Parser<Declaration> module() {
         return ignoreCase("MODULE").next(space(), (a, b) -> a).next(name(), (a, b) -> b).next(nextLine(), (a, b) -> a).msg("module: decl error",false)
-                .bind(name -> exact("...\n").map(r -> new Declaration(null, name, null)).msg("module: body err",false)
+                .bind(name -> exact("...").next(nextLine()).map(r -> new Declaration(null, name, null)).msg("module: body err",false)
                 .next(
                         ignoreCase("END").next(nextLine()
                                 .or(space().next(ignoreCase("MODULE").next(nextLine()
                                         .or(space().next(ignoreCase(name).next(nextLine())))))))
+                                            .msg("module: end module error",false)
                         ,(a,b)->a)
-                ).msg("module: end module error",false);
-
+                );
     }
 }
 
