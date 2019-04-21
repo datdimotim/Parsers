@@ -7,6 +7,8 @@ import parsers_lib.Parser;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Scanner;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static parsers_lib.Parsers.*;
@@ -40,19 +42,21 @@ public class FortranParser {
     }
     public static Parser<String> space(){return repeat1(oneOf(" ","\t"),(a,b)->a+b,"");};
 
-    //public final Parser<HashMap<String, Declaration>> file= bracket(ignoreCase("MODULE"),,ignoreCase("END MODULE").or(ignoreCase("END")));
-
-
-    public static Parser<Declaration> module() {
-        return ignoreCase("MODULE").next(space(), (a, b) -> a).next(name(), (a, b) -> b).next(nextLine(), (a, b) -> a).msg("module: decl error",false)
-                .bind(name -> exact("...").next(nextLine()).map(r -> new Declaration(null, name, null)).msg("module: body err",false)
-                .next(
-                        ignoreCase("END").next(nextLine()
-                                .or(space().next(ignoreCase("MODULE").next(nextLine()
-                                        .or(space().next(ignoreCase(name).next(nextLine())))))))
-                                            .msg("module: end module error",false)
-                        ,(a,b)->a)
+    public static <T,R>Parser<R> programObject(String keyword, Parser<T> body, BiFunction<String,T,R> nameAdder){
+        return ignoreCase(keyword).next(space(), (a, b) -> a).next(name(), (a, b) -> b).next(nextLine(), (a, b) -> a).msg(keyword+": decl error",false)
+                .bind(name -> body.next(nextLine(),(a,b)->a).msg(keyword+": body err",false)
+                        .next(
+                                ignoreCase("END").next(nextLine()
+                                        .or(space().next(ignoreCase(keyword).next(nextLine()
+                                                .or(space().next(ignoreCase(name).next(nextLine())))))))
+                                        .msg(keyword+": end error",false)
+                                ,(a,b)->a)
+                        .map(b->nameAdder.apply(name,b))
                 );
+    }
+
+    public static Parser<String> module() {
+        return programObject("module",exact("..."),(name,body)->name);
     }
 }
 
@@ -81,9 +85,9 @@ class Test{
     }
 
     public static void testModule(){
-        Parser<Declaration> module=FortranParser.module();
+        Parser<String> module=FortranParser.module();
         String[] accept={
-                "module a \n...\nend module a\n",
+                "MoDule a \n...\neNd mOdulE a\n",
                 "module    \t aS_1   \n\n  \n ...\n  \n \n \t end \t module \t as_1\n",
                 "module  b\n...\n   end\t module\n",
                 "module   ccd_\n \t ...\n\t enD\n",
@@ -95,7 +99,7 @@ class Test{
 
         for(int i=0;i<accept.length;i++){
             final int ii=i;
-            checkPositive(module,accept[i],r->r.name.toLowerCase().equals(names[ii]));
+            checkPositive(module,accept[i],name->name.toLowerCase().equals(names[ii]));
         }
         for(int i=0;i<wrong.length;i++){
             final int ii=i;
