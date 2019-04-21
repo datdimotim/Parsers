@@ -1,5 +1,7 @@
 package parsers_lib;
 
+import java.util.function.BiFunction;
+
 public class Parsers {
 
     public static final <T>Parser<T> empty(T t){
@@ -15,7 +17,7 @@ public class Parsers {
     };
 
     public static final Parser<Integer> integer=charStream -> {
-        ParseResult<Integer> result=new RepeatParser<>(digit, (a, t) -> a * 10 + t, 0).parse(charStream);
+        ParseResult<Integer> result=repeat1(digit, (a, t) -> a * 10 + t, 0).parse(charStream);
         if(!result.isError())return result;
         return new ParseResult<>("integer: first char is not digit",charStream.getPos(),result);
     };
@@ -54,6 +56,22 @@ public class Parsers {
         };
     }
 
+    public static Parser<String> ignoreCase(String s){
+        return charStream -> {
+            for (char c:s.toCharArray()){
+                ParseResult<Character> r=character(Character.toLowerCase(c)).or(character(Character.toUpperCase(c))).parse(charStream);
+                if(r.isError())return new ParseResult<>("ignoreCase: wrong char",charStream.getPos(),r);
+            }
+            return new ParseResult<>(s);
+        };
+    }
+
+    public static Parser<Character> letter=charStream -> {
+        if(charStream.isEnd())return new ParseResult<>("letter: end of stream", charStream.getPos(),null);
+        if(Character.isLetter(charStream.peek()))return new ParseResult<>(charStream.get());
+        return new ParseResult<>("letter: "+charStream.peek()+"is not letter",charStream.getPos(),null);
+    };
+
     public static Parser<String> oneOf(String... s){
         Parser<String> p=exact(s[0]);
         for(int i=1;i<s.length;i++)p=p.or(exact(s[i]));
@@ -62,6 +80,24 @@ public class Parsers {
             ParseResult<String> r=f.parse(charStream);
             if(!r.isError())return r;
             return new ParseResult<>("oneOf: all parsers fails",charStream.getPos(),r);
+        };
+    }
+
+
+    public static <A,T>Parser<A> repeat(Parser<T> parser,BiFunction<A,T,A> accum, A ini){
+        return charStream -> {
+            A st=ini;
+            ParseResult<T> t;
+            while (!(t=parser.parse(charStream)).isError())st=accum.apply(st,t.result);
+            return new ParseResult<>(st);
+        };
+    }
+
+    public static <A,T>Parser<A> repeat1(Parser<T> parser,BiFunction<A,T,A> accum, A ini){
+        return charStream -> {
+            ParseResult<T> first=parser.parse(charStream);
+            if(first.isError())return new ParseResult<>("repeat1: first parse fail",charStream.getPos(),first);
+            return repeat(parser,accum,accum.apply(ini,first.result)).parse(charStream);
         };
     }
 }

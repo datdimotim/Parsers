@@ -14,14 +14,13 @@ public interface Parser<T>{
         return t;
     }
     default <P,R> Parser<R> next(Parser<P> parser, BiFunction<T, P, R> f){
-        return charStream -> {
-            final ParseResult<T> t= Parser.this.parse(charStream);
-            if(t.isError())return new ParseResult<>(t.errInf,t.posErr,t.causeError);
-            final ParseResult<P> p=parser.parse(charStream);
-            if(p.isError())return new ParseResult<>(p.errInf,p.posErr,p.causeError);
-            return new ParseResult<>(f.apply(t.result,p.result));
-        };
+        return bind(r->parser.map(rr->(f.apply(r,rr))));
     }
+
+    default <R> Parser<R> next(Parser<R> parser){
+        return next(parser,(a,b)->b);
+    }
+
     default Parser<T> or(Parser<T> parser){
         return charStream -> {
             final ParseResult<T> t= Parser.this.parse(charStream);
@@ -30,11 +29,7 @@ public interface Parser<T>{
         };
     }
     default <R>Parser<R> map(Function<T, R> f){
-        return charStream -> {
-            ParseResult<T> t=Parser.this.tryParse(charStream);
-            if(t.isError())return new ParseResult<>(t.errInf,t.posErr,t.causeError);
-            return new ParseResult<>(f.apply(t.result));
-        };
+        return charStream -> tryParse(charStream).map(f);
     }
 
     default Parser<T> msg(String msg, boolean includePrev){
@@ -50,6 +45,14 @@ public interface Parser<T>{
             ParseResult<T> res=parse(charStream);
             if(res.isError())return or.parse(charStream);
             else return next.map(r->f.apply(res.result,r)).parse(charStream);
+        };
+    }
+
+    default <R>Parser<R> bind(Function<T,Parser<R>> k){
+        return charStream -> {
+            final ParseResult<T> t= parse(charStream);
+            if(t.isError())return new ParseResult<>(t.errInf,t.posErr,t.causeError);
+            return k.apply(t.result).parse(charStream);
         };
     }
 }

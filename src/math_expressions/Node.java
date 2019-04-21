@@ -1,5 +1,7 @@
 package math_expressions;
 
+import java.util.HashMap;
+
 public class Node {
     public final String val;
     public final Node left;

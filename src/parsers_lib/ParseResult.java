@@ -1,5 +1,7 @@
 package parsers_lib;
 
+import java.util.function.Function;
+
 public class ParseResult<T> {
     public final T result;
     public final String errInf;
@@ -21,6 +23,11 @@ public class ParseResult<T> {
         this.errInf=errInf;
         this.causeError=causeError;
         this.isError=true;
+    }
+
+    public <R> ParseResult<R> map(Function<T,R> f){
+        if(isError())return new ParseResult<>(errInf,posErr,causeError);
+        else return new ParseResult<>(f.apply(result));
     }
 
     public boolean isError(){

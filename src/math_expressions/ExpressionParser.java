@@ -3,7 +3,6 @@ package math_expressions;
 
 import parsers_lib.ParseResult;
 import parsers_lib.Parser;
-import parsers_lib.RepeatParser;
 
 import static parsers_lib.Parsers.*;
 
@@ -78,7 +77,7 @@ public class ExpressionParser{
     }
 
     private static <T>Parser<T> skipSpaces(Parser<T> parser){
-        Parser<Object> p=new RepeatParser<>(oneOf(" ","\t","\r","\n"),(a,b)->new Object(),new Object()).or(empty(new Object()));
+        Parser<Object> p=repeat1(oneOf(" ","\t","\r","\n"),(a,b)->new Object(),new Object()).or(empty(new Object()));
         return p.next(parser, (a,b)->b).next(p,(a,b)->a);
     }
 
