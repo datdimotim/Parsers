@@ -8,6 +8,10 @@ public class Parsers {
       return charStream -> new ParseResult<>(t);
     }
 
+    public static Parser<Void> fail(String msg){
+        return charStream -> new ParseResult<Void>(msg,charStream.getPos(),null);
+    }
+
     public static final Parser<Void> eof=charStream -> charStream.isEnd()?new ParseResult<>(null):new ParseResult<>("eof: not eof",charStream.getPos(),null);
 
     public static final Parser<Integer> digit= charStream -> {

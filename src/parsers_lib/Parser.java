@@ -55,4 +55,12 @@ public interface Parser<T>{
             return k.apply(t.result).parse(charStream);
         };
     }
+
+    default <R>Parser<R> rightBind(Parser<R> p){
+        return next(p,(a,b)->b);
+    }
+
+    default <R>Parser<T> leftBind(Parser<R> p){
+        return next(p,(a,b)->a);
+    }
 }

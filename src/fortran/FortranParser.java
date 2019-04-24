@@ -6,9 +6,9 @@ import parsers_lib.Parser;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.Scanner;
+import java.sql.Array;
+import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static parsers_lib.Parsers.*;
@@ -43,8 +43,8 @@ public class FortranParser {
     public static Parser<String> space(){return repeat1(oneOf(" ","\t"),(a,b)->a+b,"");};
 
     public static <T,R>Parser<R> programObject(String keyword, Parser<T> body, BiFunction<String,T,R> nameAdder){
-        return ignoreCase(keyword).next(space(), (a, b) -> a).next(name(), (a, b) -> b).next(nextLine(), (a, b) -> a).msg(keyword+": decl error",false)
-                .bind(name -> body.next(nextLine(),(a,b)->a).msg(keyword+": body err",false)
+        return ignoreCase(keyword).leftBind(space()).rightBind(name()).msg(keyword+": decl error",false)
+                .bind(name -> body.leftBind(nextLine()).msg(keyword+": body err",false)
                         .next(
                                 ignoreCase("END").next(nextLine()
                                         .or(space().next(ignoreCase(keyword).next(nextLine()
@@ -56,7 +56,37 @@ public class FortranParser {
     }
 
     public static Parser<String> module() {
-        return programObject("module",exact("..."),(name,body)->name);
+        return programObject("module",nextLine().next(exact("...")),(name,body)->name);
+    }
+
+    public static Parser<ArrayList<String>> listParams(){
+        Parser<String> delimeter=space().or(empty("")).rightBind(exact(",").rightBind(space().or(empty(""))));
+        Parser<ArrayList<String>> lasts=repeat(delimeter.rightBind(name()),FortranParser::append,new ArrayList<>());
+        Parser<ArrayList<String>> listParser=name().next(lasts, FortranParser::prepend);
+
+        return exact("(").rightBind(space().or(empty(""))).rightBind(listParser).leftBind(space().or(empty(""))).leftBind(exact(")"))
+                .msg("listParams: fail parse list of params",false)
+                .bind(l->{
+                    Set<String> names=new HashSet<>();
+                    for(String name:l){
+                        if(names.contains(name))return fail("listParams: multiple declaration params: "+name).map(v->null);
+                        names.add(name);
+                    };
+                    return empty(l);
+                });
+    }
+
+    private static <T>ArrayList<T> prepend(T t,ArrayList<T> list){
+        ArrayList<T> l=new ArrayList<>();
+        l.add(t);
+        l.addAll(list);
+        return l;
+    }
+
+    private static <T>ArrayList<T> append(ArrayList<T> list, T t){
+        ArrayList<T> l=new ArrayList<>(list);
+        l.add(t);
+        return l;
     }
 }
 
@@ -82,6 +112,7 @@ class Test{
     public static void main(String[] args) {
         testName();
         testModule();
+        testListParams();
     }
 
     public static void testModule(){
@@ -94,7 +125,7 @@ class Test{
         };
         final String[] names={"a","as_1","b","ccd_"};
 
-        String[] wrong={"module a ... end","module as\n..\nend","module ass\n...\nend module as;"};
+        String[] wrong={"module \n a ... end","module as\n..\nend","module ass\n...\nend module as;"};
         String[] mesgs={"decl","body","end"};
 
         for(int i=0;i<accept.length;i++){
@@ -104,6 +135,34 @@ class Test{
         for(int i=0;i<wrong.length;i++){
             final int ii=i;
             checkNegative(module,wrong[i],err->err.startsWith("module: "+mesgs[ii]));
+        }
+    }
+
+    public static void testListParams(){
+        Parser<ArrayList<String>> module=FortranParser.listParams();
+        String[] accept={
+                "(a,b,c,d)",
+                "(  as , bAs , daa_w    ,c2  )  ",
+                "(a)",
+                "(  wW_1 \t)",
+        };
+        final String[][] names={{"a","b","c","d"},{"as","bAs","daa_w","c2"},{"a"},{"ww_1"}};
+
+        String[] wrong={"(a,b,d,a)"};
+        String[] mesgs={"decl","body","end"};
+
+        for(int i=0;i<accept.length;i++){
+            final int ii=i;
+            checkPositive(module,accept[i],list->{
+                for(int iname=0;iname<names[ii].length;iname++){
+                    if(!names[ii][iname].toLowerCase().equals(list.get(iname).toLowerCase()))return false;
+                }
+                return true;
+            });
+        }
+        for(int i=0;i<wrong.length;i++){
+            final int ii=i;
+            checkNegative(module,wrong[i],err->true);
         }
     }
 
@@ -119,7 +178,11 @@ class Test{
     private static <T>void checkPositive(Parser<T> parser, String string, Predicate<T> checker){
         CharStream stream=new CharStream(string);
         ParseResult<T> result=parser.parse(stream);
-        if(result.isError())throw new RuntimeException(string);
+        if(result.isError()){
+            result.printError(stream);
+            throw new RuntimeException(string);
+
+        }
         if(!checker.test(result.result))throw new RuntimeException(result.result.toString());
     }
 
