@@ -1,4 +1,4 @@
-package fortran;
+package fortran.util;
 
 import java.util.Objects;
 

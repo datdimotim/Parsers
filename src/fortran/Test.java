@@ -110,7 +110,7 @@ public class Test{
     }
 
     public static void testName(){
-        Parser<String> name=FortranParser.name();
+        Parser<String> name= Lexers.name();
         String[] accept={"func","f","f12","f1f2f32cc3d22","f_12","___asw","ssww2___","s swew 2 2"};
         String[] wrong={" ssa","","2ssq","01qww sdw"};
 
