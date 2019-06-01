@@ -77,7 +77,8 @@ public class Tests {
 
 
         for (String s:wrong){
-            ExpressionParser.expression.parse(new CharStream(s)).printError(new CharStream(s));
+            String err=ExpressionParser.expression.parse(new CharStream(s)).describeError(new CharStream(s));
+            System.out.println(err);
             System.out.println();
             System.out.println();
         }

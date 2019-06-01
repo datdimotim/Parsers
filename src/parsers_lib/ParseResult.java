@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 public class ParseResult<T> {
     public final T result;
-    public final String errInf;
+    final String errInf;
     public final int posErr;
     public final ParseResult<?> causeError;
     private final boolean isError;
@@ -46,14 +46,15 @@ public class ParseResult<T> {
         return r.toString();
     }
 
-    public void printError(CharStream stream){
-        printError(stream.getSrc(),"");
+    public String describeError(CharStream stream){
+        return describeError(stream.getSrc(),"");
     }
 
-    private void printError(String src, String tabs){
-        System.out.println(tabs+errInf);
-        System.out.println(tabs+subString(src,posErr,10));
-        System.out.println(tabs+markerString(posErr,10));
-        if(causeError!=null)causeError.printError(src,tabs+"\t");
+    private String describeError(String src, String tabs){
+        String err=tabs+errInf+"\n";
+        err+=tabs+subString(src,posErr,10)+"\n";
+        err+=tabs+markerString(posErr,10)+"\n";
+        if(causeError!=null)return err+causeError.describeError(src,tabs+"\t");
+        else return err;
     }
 }

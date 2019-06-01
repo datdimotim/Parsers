@@ -38,7 +38,7 @@ public class Test{
         String[] wrong={"subroutine twin(x,x)\n...\nend\n","subroutine\n...\nend"};
         Predicate[] checkers={
                 (Predicate<String>) err-> err.contains("listParams: multiple declaration params"),
-                (Predicate<String>) err->err.endsWith("subroutine: "),
+                (Predicate<String>) err->err.startsWith("subroutine: "),
                 (Predicate<String>) err->true
         };
 
@@ -122,7 +122,8 @@ public class Test{
         CharStream stream=new CharStream(string);
         ParseResult<T> result=parser.parse(stream);
         if(result.isError()){
-            result.printError(stream);
+            String err=result.describeError(stream);
+            System.out.println(err);
             throw new RuntimeException(string);
 
         }
@@ -133,6 +134,6 @@ public class Test{
         CharStream stream=new CharStream(string);
         ParseResult<T> result=parser.parse(stream);
         if(!result.isError())throw new RuntimeException(string);
-        if(!checkMesg.test(result.errInf))throw new RuntimeException(string+"\n\n"+result.errInf);
+        if(!checkMesg.test(result.describeError(stream)))throw new RuntimeException(string+"\n\n"+result.describeError(stream));
     }
 }
