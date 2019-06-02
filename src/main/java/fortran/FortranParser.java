@@ -2,6 +2,7 @@ package fortran;
 
 import fortran.util.Tuple;
 import fortran.util.Util;
+import lombok.Value;
 import parsers_lib.Parser;
 import parsers_lib.Parsers;
 
@@ -17,9 +18,9 @@ public class FortranParser {
         return ignoreCase(keyword).leftBind(Lexers.space()).rightBind(Lexers.name()).msg(keyword+": decl error",false)
                 .bind(name -> body.leftBind(Lexers.nextLine()).msg(keyword+": body err",true)
                         .next(
-                                ignoreCase("END").next(Lexers.nextLine()
-                                        .or(Lexers.space().next(ignoreCase(keyword).next(Lexers.nextLine()
-                                                .or(Lexers.space().next(ignoreCase(name).next(Lexers.nextLine())))))))
+                                ignoreCase("END").leftBind(Lexers.nextLine()
+                                        .or(Lexers.space().leftBind(ignoreCase(keyword).leftBind(Lexers.nextLine()
+                                                .or(Lexers.space().rightBind(ignoreCase(name).leftBind(Lexers.nextLine())))))))
                                         .msg(keyword+": end error",false)
                                 ,(a,b)->a)
                         .map(b->nameAdder.apply(name,b))
@@ -27,31 +28,31 @@ public class FortranParser {
     }
 
     public static Parser<String> module() {
-        return programObject("module", Lexers.nextLine().next(exact("...")),(name, body)->name);
+        return programObject("module", Lexers.nextLine().leftBind(exact("...")),(name, body)->name);
     }
 
     public static Parser<Subroutine> subroutine(){
         return programObject(
-                "subroutine", optionalSpace().rightBind(listParams()).leftBind(Lexers.nextLine()).next(exact("..."), Tuple::new),
-                (name,paramsAndBody)->new Subroutine(name,paramsAndBody.getFst())
+                "subroutine", optionalSpace().rightBind(listParams()).leftBind(Lexers.nextLine()).next(
+                        declarationList().leftBind(nextLine()).next(exact("..."),Tuple::new),
+                        Tuple::new),
+                (name,paramsAndBody)->new Subroutine(name,paramsAndBody.getFst(),paramsAndBody.getSnd().getFst())
         );
     }
 
+    @Value
     public static class Subroutine{
-        private final String name;
-        private final List<String> params;
+        String name;
+        List<String> params;
+        Map<String,FullType> variables;
 
-        public Subroutine(String name, List<String> params) {
+        public Subroutine(String name, List<String> params, Map<String,FullType> variables) {
             this.name = name;
             this.params = params;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public List<String> getParams() {
-            return params;
+            this.variables=variables;
+            params.forEach(p->{
+                if(!variables.containsKey(p))throw new RuntimeException();
+            });
         }
     }
 
@@ -112,28 +113,10 @@ public class FortranParser {
         });
     }
 
+    @Value
     public static class FullType{
-        public final FortranType type;
-        public final int kind;
-
-        public FullType(FortranType type, int kind) {
-            this.type = type;
-            this.kind = kind;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FullType fullType = (FullType) o;
-            return kind == fullType.kind &&
-                    type == fullType.type;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(type, kind);
-        }
+        FortranType type;
+        int kind;
     }
 
     public enum  FortranType{

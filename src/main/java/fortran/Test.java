@@ -87,10 +87,10 @@ public class Test{
                 "subroutine   many(first, second, \t third)\n \t ...\n\t enD\n",
         };
         final Subroutine[] subroutines={
-                new Subroutine("zero",new ArrayList<>()),
-                new Subroutine("single", Arrays.asList("first")),
-                new Subroutine("double", Arrays.asList("first","second")),
-                new Subroutine("many",Arrays.asList("first","second","third"))
+                new Subroutine("zero",new ArrayList<>(),null),
+                new Subroutine("single", Arrays.asList("first"),null),
+                new Subroutine("double", Arrays.asList("first","second"),null),
+                new Subroutine("many",Arrays.asList("first","second","third"),null)
         };
 
         String[] wrong={"subroutine twin(x,x)\n...\nend\n","subroutine\n...\nend"};

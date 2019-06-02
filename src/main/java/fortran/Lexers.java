@@ -11,8 +11,8 @@ public class Lexers {
     }
 
     public static Parser<String> nextLine(){
-        return optionalSpace().next(oneOf(";","\n"))
-                .next(repeat(oneOf(";","\n").or(space()),(a,b)->a+b,""));
+        return optionalSpace().rightBind(oneOf(";","\n"))
+                .rightBind(repeat(oneOf(";","\n").or(space()),(a,b)->a+b,""));
     }
 
     public static Parser<String> space(){return repeat1(oneOf(" ","\t"),(a, b)->a+b,"");}

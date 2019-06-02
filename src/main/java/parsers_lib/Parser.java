@@ -17,10 +17,6 @@ public interface Parser<T>{
         return bind(r->parser.map(rr->(f.apply(r,rr))));
     }
 
-    default <R> Parser<R> next(Parser<R> parser){
-        return next(parser,(a,b)->b);
-    }
-
     default Parser<T> or(Parser<T> parser){
         return charStream -> {
             final ParseResult<T> t= Parser.this.parse(charStream);
