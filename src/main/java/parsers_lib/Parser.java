@@ -2,6 +2,7 @@ package parsers_lib;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public interface Parser<T>{
     ParseResult<T> tryParse(CharStream charStream);
@@ -58,5 +59,12 @@ public interface Parser<T>{
 
     default <R>Parser<T> leftBind(Parser<R> p){
         return next(p,(a,b)->a);
+    }
+
+    default Parser<T> valid(Predicate<T> predicate, String errorMessage){
+        return this.bind(t->{
+            if(predicate.test(t))return Parsers.empty(t);
+            else return Parsers.fail(errorMessage);
+        });
     }
 }

@@ -81,16 +81,16 @@ public class Test{
 
 
         String[] accept={
-                "subroutine zero\n...\nend\n",
-                "subroutine    \t single \t\t (\t first\t  ) \n\n   \n ...\n  \n \n \t end \t subroutine \t single\n",
-                "subroutine  double    (first, second) \n...\n   end\t subroutine \n",
-                "subroutine   many(first, second, \t third)\n \t ...\n\t enD\n",
+                "subroutine zero \n...\nend\n",
+                "subroutine    \t single \t\t (\t first\t  ) \n\n  integer*1::first \n ...\n  \n \n \t end \t subroutine \t single\n",
+                "subroutine  double    (first, second)\ncharacter*1::first,second,third \n...\n   end\t subroutine \n",
+                "subroutine   many(first, second, \t third)\n character*1::first,second \n integer*4::third\t\n\t ...\n\t enD\n",
         };
         final Subroutine[] subroutines={
-                new Subroutine("zero",new ArrayList<>(),null),
-                new Subroutine("single", Arrays.asList("first"),null),
-                new Subroutine("double", Arrays.asList("first","second"),null),
-                new Subroutine("many",Arrays.asList("first","second","third"),null)
+                new Subroutine("zero",new ArrayList<>(),new HashMap<String, FullType>(){{}}),
+                new Subroutine("single", Arrays.asList("first"),new HashMap<String, FullType>(){{put("first",new FullType(FortranType.INTEGER,1));}}),
+                new Subroutine("double", Arrays.asList("first","second"),new HashMap<String, FullType>(){{put("first",new FortranParser.FullType(FortranType.CHARACTER,1));put("second",new FullType(FortranType.CHARACTER,1));put("third",new FullType(FortranType.CHARACTER,1));}}),
+                new Subroutine("many",Arrays.asList("first","second","third"),new HashMap<String, FullType>(){{put("first",new FortranParser.FullType(FortranType.CHARACTER,1));put("second",new FullType(FortranType.CHARACTER,1));put("third",new FullType(FortranType.INTEGER,4));}})
         };
 
         String[] wrong={"subroutine twin(x,x)\n...\nend\n","subroutine\n...\nend"};

@@ -8,6 +8,7 @@ import parsers_lib.Parsers;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import static fortran.Lexers.*;
 import static parsers_lib.Parsers.*;
@@ -32,12 +33,18 @@ public class FortranParser {
     }
 
     public static Parser<Subroutine> subroutine(){
+        BiPredicate<List<String>, Set<String>> isAllParamsDeclared=(params, declarations)->{
+            for(String param:params)if(!declarations.contains(param))return false;
+            return true;
+        };
         return programObject(
                 "subroutine", optionalSpace().rightBind(listParams()).leftBind(Lexers.nextLine()).next(
-                        declarationList().leftBind(nextLine()).next(exact("..."),Tuple::new),
-                        Tuple::new),
-                (name,paramsAndBody)->new Subroutine(name,paramsAndBody.getFst(),paramsAndBody.getSnd().getFst())
-        );
+                        (declarationList().leftBind(nextLine()).or(empty(new HashMap<>()))).next(exact("..."),Tuple::new),
+                        Tuple::new),Tuple::new)
+                .valid(
+                        raw->isAllParamsDeclared.test(raw.getSnd().getFst(),raw.getSnd().getSnd().getFst().keySet())
+                        ,"subroutine: not all parameters are declared")
+                .map(raw->new Subroutine(raw.getFst(),raw.getSnd().getFst(),raw.getSnd().getSnd().getFst()));
     }
 
     @Value
@@ -57,11 +64,11 @@ public class FortranParser {
     }
 
     public static Parser<List<String>> listParams(){
-        Parser<String> delimeter= Lexers.space().or(empty("")).rightBind(exact(",").rightBind(Lexers.space().or(empty(""))));
+        Parser<String> delimeter= optionalSpace().rightBind(exact(",").rightBind(optionalSpace()));
         Parser<List<String>> lasts=repeat(delimeter.rightBind(Lexers.name()), Util::append,new ArrayList<>());
         Parser<List<String>> listParser= Lexers.name().next(lasts, Util::prepend);
 
-        return exact("(").rightBind(Lexers.space().or(empty(""))).rightBind(listParser).leftBind(Lexers.space().or(empty(""))).leftBind(exact(")"))
+        return exact("(").rightBind(optionalSpace()).rightBind(listParser).leftBind(optionalSpace()).leftBind(exact(")"))
                 .or(empty(new ArrayList<>()))
                 .bind(l->{
                     Set<String> names=new HashSet<>();
