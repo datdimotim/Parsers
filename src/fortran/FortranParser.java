@@ -3,10 +3,12 @@ package fortran;
 import fortran.util.Tuple;
 import fortran.util.Util;
 import parsers_lib.Parser;
+import parsers_lib.Parsers;
 
 import java.util.*;
 import java.util.function.BiFunction;
 
+import static fortran.Lexers.*;
 import static parsers_lib.Parsers.*;
 
 public class FortranParser {
@@ -30,7 +32,7 @@ public class FortranParser {
 
     public static Parser<Subroutine> subroutine(){
         return programObject(
-                "subroutine", Lexers.optionalSpace().rightBind(listParams()).leftBind(Lexers.nextLine()).next(exact("..."), Tuple::new),
+                "subroutine", optionalSpace().rightBind(listParams()).leftBind(Lexers.nextLine()).next(exact("..."), Tuple::new),
                 (name,paramsAndBody)->new Subroutine(name,paramsAndBody.getFst())
         );
     }
@@ -70,6 +72,73 @@ public class FortranParser {
                 });
     }
 
+    public static Parser<Map<String,FullType>> declarationList(){
+        Parser<FortranType> integer=ignoreCase("integer").map(e->FortranType.INTEGER);
+        Parser<FortranType> real=ignoreCase("real").map(e->FortranType.REAL);
+        Parser<FortranType> logical=ignoreCase("logical").map(e->FortranType.LOGICAL);
+        Parser<FortranType> character=ignoreCase("character").map(e->FortranType.CHARACTER);
+        Parser<Integer> nonStringKinds=oneOf("1","2","4","8").map(Integer::parseInt);
+
+        Parser<FullType> nonStringTypesParser=integer.or(real).or(logical)
+                .leftBind(optionalSpace())
+                .leftBind(exact("*"))
+                .leftBind(optionalSpace())
+                .next(nonStringKinds,(t,k)->new FullType(t,k));
+
+        Parser<FullType> stringTypeParser=character
+                .leftBind(optionalSpace())
+                .leftBind(exact("*"))
+                .leftBind(optionalSpace())
+                .next(Parsers.unsignedInteger,(t, k)->new FullType(t,k));
+
+        Parser<FullType> typeParser=nonStringTypesParser.or(stringTypeParser);
+        Parser<List<String>> names=repeat(name(),optionalSpace().rightBind(exact(",")).rightBind(optionalSpace()));
+
+        Parser<Tuple<FullType,List<String>>> line=typeParser
+                .leftBind(optionalSpace()).leftBind(exact("::")).leftBind(optionalSpace())
+                .next(names,Tuple::new);
+
+        Parser<List<Tuple<FullType,List<String>>>>raw=repeat(line,nextLine());
+
+        return raw.bind(r->{
+            Map<String,FullType> params=new HashMap<>();
+            for(Tuple<FullType,List<String>> typeLine:r){
+                for(String varName:typeLine.getSnd()){
+                    if(params.containsKey(varName))return fail("declarationList: double declaration: "+varName);
+                    params.put(varName,typeLine.getFst());
+                }
+            }
+            return empty(params);
+        });
+    }
+
+    public static class FullType{
+        public final FortranType type;
+        public final int kind;
+
+        public FullType(FortranType type, int kind) {
+            this.type = type;
+            this.kind = kind;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FullType fullType = (FullType) o;
+            return kind == fullType.kind &&
+                    type == fullType.type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(type, kind);
+        }
+    }
+
+    public enum  FortranType{
+        INTEGER,CHARACTER,LOGICAL,REAL
+    }
 }
 
 

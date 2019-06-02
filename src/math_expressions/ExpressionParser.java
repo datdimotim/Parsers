@@ -49,7 +49,7 @@ public class ExpressionParser{
     }
 
     private static Parser<Node> number(){
-        return integer.map(i->new Node(i+""));
+        return unsignedInteger.map(i->new Node(i+""));
     }
 
     private static Parser<Node> constant(){return oneOf("e","pi").map(Node::new);}

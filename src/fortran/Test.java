@@ -4,9 +4,7 @@ import parsers_lib.CharStream;
 import parsers_lib.ParseResult;
 import parsers_lib.Parser;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import static fortran.FortranParser.*;
 
@@ -16,6 +14,66 @@ public class Test{
         testModule();
         testListParams();
         testSubroutine();
+        testDeclarationList();
+    }
+
+    public static void testDeclarationList(){
+        Parser<Map<String,FullType>> declarationList=FortranParser.declarationList();
+        String[] accept={
+                "integer*1::a",
+                "logical*2::a,b",
+                "real*8 ::  a  , b",
+                "character *  100 :: a, b \t",
+                "integer *4 :: a\n integer*8  :: b  \n character*22::c \n",
+        };
+
+        String[] wrong={
+                "integer*1::",
+                "integer*1:: \ninteger *1 a",
+                "logical*2::a,a",
+                "integer *3 :: a",
+                "integer *4::a\nlogical*1::a"
+        };
+
+        Map[] paramLists={
+                new HashMap<String,FullType>(){{
+                    put("a",new FullType(FortranType.INTEGER,1));
+                }},
+                new HashMap<String,FullType>(){{
+                    put("a",new FullType(FortranType.LOGICAL,2));
+                    put("b",new FullType(FortranType.LOGICAL,2));
+                }},
+                new HashMap<String,FullType>(){{
+                    put("a",new FullType(FortranType.REAL,8));
+                    put("b",new FullType(FortranType.REAL,8));
+                }},
+                new HashMap<String,FullType>(){{
+                    put("a",new FullType(FortranType.CHARACTER,100));
+                    put("b",new FullType(FortranType.CHARACTER,100));
+                }},
+                new HashMap<String,FullType>(){{
+                    put("a",new FullType(FortranType.INTEGER,4));
+                    put("b",new FullType(FortranType.INTEGER,8));
+                    put("c",new FullType(FortranType.CHARACTER,22));
+                }},
+        };
+
+        for(int i=0;i<accept.length;i++){
+            final int ii=i;
+            checkPositive(
+                    declarationList,accept[i],
+                    sub-> sub.equals(paramLists[ii])
+            );
+        }
+
+        for(int i=0;i<wrong.length;i++){
+            checkNegative(declarationList,wrong[i],err->{
+                System.out.println(err);
+                return true;
+            });
+        }
+
+
     }
 
     public static void testSubroutine(){

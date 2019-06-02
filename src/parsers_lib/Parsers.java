@@ -1,5 +1,11 @@
 package parsers_lib;
 
+import fortran.util.Util;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BiFunction;
 
 public class Parsers {
@@ -8,8 +14,8 @@ public class Parsers {
       return charStream -> new ParseResult<>(t);
     }
 
-    public static Parser<Void> fail(String msg){
-        return charStream -> new ParseResult<Void>(msg,charStream.getPos(),null);
+    public static <T>Parser<T> fail(String msg){
+        return charStream -> new ParseResult<>(msg,charStream.getPos(),null);
     }
 
     public static final Parser<Void> eof=charStream -> charStream.isEnd()?new ParseResult<>(null):new ParseResult<>("eof: not eof",charStream.getPos(),null);
@@ -20,10 +26,10 @@ public class Parsers {
         return new ParseResult<>(charStream.get()-'0');
     };
 
-    public static final Parser<Integer> integer=charStream -> {
+    public static final Parser<Integer> unsignedInteger = charStream -> {
         ParseResult<Integer> result=repeat1(digit, (a, t) -> a * 10 + t, 0).parse(charStream);
         if(!result.isError())return result;
-        return new ParseResult<>("integer: first char is not digit",charStream.getPos(),result);
+        return new ParseResult<>("unsignedInteger: first char is not digit",charStream.getPos(),result);
     };
 
     public static Parser<Character> character(char c){
@@ -87,6 +93,10 @@ public class Parsers {
         };
     }
 
+    public static <T>Parser<List<T>> repeat(Parser<T> body, Parser<?> delimeter){
+        Parser<T> lastEntries=delimeter.rightBind(body);
+        return body.bind((first)->repeat(lastEntries,Util::append, Collections.singletonList(first)));
+    }
 
     public static <A,T>Parser<A> repeat(Parser<T> parser,BiFunction<A,T,A> accum, A ini){
         return charStream -> {
